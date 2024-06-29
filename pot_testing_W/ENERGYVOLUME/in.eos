@@ -5,8 +5,8 @@
 log             eos.log           
 label           loop_start
 
-variable        i loop 1 100
-variable        latparam equal 3.157-0.5+(1/100)*${i}
+variable        i loop 1 30
+variable        latparam equal 3.157-0.05+(0.1/30)*${i}
 
 clear
 units           metal

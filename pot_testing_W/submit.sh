@@ -155,7 +155,6 @@ rm *.png
 python eos.py
 python sfe.py
 python melting_point.py
-python basic_pro.py
 python plot_phonon.py
 cp *.png ../${potfilename}
 
