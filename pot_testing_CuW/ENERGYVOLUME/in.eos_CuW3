@@ -1,0 +1,81 @@
+#-----lammps input for fcc material
+#-----calculate the energy volume curve
+
+#----------general initiation--------------------------
+log             eos_CuW3.log           
+label           loop_start
+
+variable        i loop 1 100
+#variable        latparam equal 3.94-0.5+(1/100)*${i}
+variable        latparam equal 3.94-0.8+(1.5/100)*${i}
+
+clear
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+atom_modify     map yes
+
+#-------Define geometry  (2d X 2d) ---------------------
+lattice          custom ${latparam} a1 1 0 0 a2 0 1 0 a3 0 0 1 &
+basis            0 0 0 &
+basis            0 0.5 0.5 &
+basis            0.5 0 0.5 &
+basis            0.5 0.5 0 &
+
+
+region          box block 0 1 0 1 0 1 units lattice
+create_box      2 box      
+create_atoms     2 box &
+basis            1 1 &
+basis            2 2 &
+basis            3 2 &
+basis            4 2 &
+
+
+#-------Define interatomic potential--------------------
+include         ../potential_CuW.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#-------Define atom mass (no needed for moelcular statics) 
+mass            1 63.546
+mass            2 183.84
+
+#-------Compute------------------------------------------
+compute 	eng all pe/atom
+compute 	new all temp
+compute 	csym all centro/atom fcc
+compute 	poten all pe
+compute 	stress all stress/atom NULL
+
+#------Relaxation----------------------------------------
+thermo          100
+thermo_style    custom step pe lx ly lz pxx pyy pzz pxy pxz pyz press
+
+min_style       cg
+minimize        1e-30 10e-12 100000000 1000000000
+
+#-----Calculate the lattice parameter--------------------
+variable        tmp equal "lx"
+variable        LX equal ${tmp}
+variable        tmp equal "ly"
+variable        LY equal ${tmp}
+variable        tmp equal "lz"
+variable        LZ equal ${tmp}
+variable        tmp equal "atoms"
+variable        N equal ${tmp}
+variable        V equal (${LX}*${LY}*${LZ})
+variable        tmp equal "pe"
+variable        pe0 equal ${tmp}
+variable        teng equal ${pe0}/${N}
+variable        vol  equal ${V}/${N}
+
+#-----output to datafolder-------------------------------- 
+print           "${vol} ${teng}" append ./volume_fcc.dat
+
+#-----jump to next loop-----------------------------------
+next            i
+jump            in.eos_CuW3 loop_start
+
+print           "JOB DONE!"

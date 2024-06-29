@@ -1,0 +1,79 @@
+log             interface_CuW_110_110_KS.log
+units           metal
+boundary        p p p
+dimension       3
+atom_style      atomic
+
+#-------Define geometry  (2d X 2d) -------------------------------------------------
+read_data  interface_CuW_111_110_KS.lmp
+change_box all z delta -10 10 units box
+
+#-------Define interatomic potential-----------------------------------
+include         ../potential_WCu.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#-------Define atom mass (no needed for moelcular statics) ------------
+mass            1 183.84
+mass            2 63.546
+
+#------Define upper and lower regions to move--------------------------
+group           upper type 2
+
+#----------------------------------------------------------------------
+compute         eng all pe/atom
+compute         new all temp
+compute         poten all pe
+compute         stress all stress/atom NULL
+
+thermo          10
+thermo_style    custom step pe lx ly lz pxx pyy pzz pxy pxz pyz press
+displace_atoms  upper move 0 0 7  units box
+#min_style       cg
+#minimize        1.0e-18 1.0e-9 10000 10000
+run 0 
+variable        tmp equal "pe"
+variable        pe0 equal ${tmp}
+
+print           "displacement energy(eV/Ang^2) energy(J/m^2)" append ./interface_CuW_111_110_KS.csv
+print           "0.0 0.0 0.0" append ./interface_CuW_111_110_KS.csv
+
+displace_atoms  upper move 0 0 -7.6  units box
+
+#---------start loop--------------------------------------------------
+label           loopn
+variable        n loop 40                    
+
+reset_timestep  0
+
+fix             freeze all setforce NULL NULL 0
+displace_atoms  upper move 0 0 0.2  units box
+
+
+dump            dump_img all custom 5000 interface_CuW_111_110_KS.$n id type x y z c_eng
+min_style       cg
+minimize        1.0e-18 1.0e-9 10000 10000
+
+min_style       fire
+minimize        0.0 1.0e-5 10000 10000
+undump          dump_img
+unfix           freeze
+
+variable        tmp equal "pe"
+variable        pe1 equal ${tmp}
+variable        tmp equal "lx"
+variable        LX equal ${tmp}
+variable        tmp equal "ly"
+variable        LY equal ${tmp}
+variable        tmp equal "lz"
+variable        LZ equal ${tmp}
+variable        A1  equal ${LX}*${LY}
+variable        Einterface0 equal (${pe1}-${pe0})/(${A1})
+# units conversion: eV/Ang^2 to J/m^2
+variable        Einterface equal ${Einterface0}*16.0217733
+variable        dis equal ${n}*0.2-0.6+0.000000001
+
+print           "${dis} ${Einterface0} ${Einterface}" append ./interface_CuW_111_110_KS.csv
+
+next            n
+jump            in.interface_CuW_111_110_KS loopn
