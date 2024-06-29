@@ -1,0 +1,55 @@
+#-----lammps input for bcc material
+#-----calculate melting point
+
+#-------General initialization-----------------------------
+log             mp_${epoch}.log
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+atom_modify     map yes
+
+#-------Define geometry  (2d X 2d) ---
+read_data melting_point.data
+
+#-------Define atom mass (no needed for molecular statics) 
+mass            1 183.84
+
+#-------Define interatomic potential--
+include         ../potential.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#-------Define varibable-----------------
+variable Tem equal (2000+100*${epoch})
+
+#-------fix---------------------------------
+velocity all create ${Tem} 4928459
+
+fix heating all npt temp ${Tem} ${Tem} 1 iso 1 1 1
+
+thermo          1000
+thermo_style    custom step temp vol pe lx ly lz pxx pyy pzz pxy pxz pyz press
+
+dump            1 all custom 40000 dump_${Tem}.* id type x y z fx fy fz 
+run             40000
+
+#-------Compute density---------------------------------
+variable        tmp equal "temp"
+variable        T equal ${tmp}
+variable        tmp equal "atoms"
+variable        N equal ${tmp}
+variable        tmp equal "lx"
+variable        LX equal ${tmp}
+variable        tmp equal "ly"
+variable        LY equal ${tmp}
+variable        tmp equal "lz"
+variable        LZ equal ${tmp}
+variable        V0 equal ${LX}*${LY}*${LZ}
+variable        Den equal (${N}*183.84/(${V0}*0.60221367))
+
+
+#-----output to datafolder-------------------------------- 
+print           "${T} ${Den}" append ./melting_point.csv
+
+
