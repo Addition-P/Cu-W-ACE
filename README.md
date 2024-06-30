@@ -19,7 +19,7 @@
 ## The required inputs are:
 1. Interatomic potential: to be changed in potential folder
 2. Required cores and wall time on the cluster
-3. Email address
+
 ## Additional requirements on system:
 - The molecular statics/dynamics is running with a parallel version of LAMMPS.
 1. The ML-PACE package needs to be installed in LAMMPS.
