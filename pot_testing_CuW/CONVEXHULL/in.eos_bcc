@@ -1,0 +1,74 @@
+#----------general initiation--------------------------
+log             eos_bcc.log           
+label           loop_start
+
+variable        i loop 0 16
+variable        latparam equal 0.0625*${i}
+
+label scal_start
+variable      j loop 8 12
+variable      factor equal ${j}/10
+
+clear
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+atom_modify     map yes
+
+#-------Define geometry  (2d X 2d) ---------------------
+read_data ./bcc/CuW.bcc.${latparam}.data
+
+#------Change box--------------------------------------
+change_box all x scale ${factor} y scale ${factor} z scale ${factor}
+
+#-------Define interatomic potential--------------------
+include         ../potential_CuW.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#-------Define atom mass (no needed for moelcular statics) 
+mass            1 63.546
+mass            2 183.84
+
+#-------Compute------------------------------------------
+compute 	eng all pe/atom
+compute 	new all temp
+compute 	csym all centro/atom bcc
+compute 	poten all pe
+compute 	stress all stress/atom NULL
+
+#------Relaxation----------------------------------------
+thermo          100
+thermo_style    custom step pe lx ly lz pxx pyy pzz pxy pxz pyz press
+run 1
+dump            1 all custom 100 dump_bcc_${latparam}.* id type x y z fx fy fz 
+#min_style       cg
+#minimize        1e-30 10e-12 100000000 1000000000
+
+#-----Calculate the lattice parameter--------------------
+variable        tmp equal "lx"
+variable        LX equal ${tmp}
+variable        tmp equal "ly"
+variable        LY equal ${tmp}
+variable        tmp equal "lz"
+variable        LZ equal ${tmp}
+variable        tmp equal "atoms"
+variable        N equal ${tmp}
+variable        V equal (${LX}*${LY}*${LZ})
+variable        tmp equal "pe"
+variable        pe0 equal ${tmp}
+variable        teng equal ${pe0}/${N}
+variable        vol  equal ${V}/${N}
+
+#-----output to datafolder-------------------------------- 
+print           "${vol} ${teng}" append ./volume_bcc_${latparam}.dat
+
+#-----jump to next loop-----------------------------------
+next            j
+jump           in.eos_bcc scal_start
+
+next            i
+jump            in.eos_bcc loop_start
+
+print           "JOB DONE!"

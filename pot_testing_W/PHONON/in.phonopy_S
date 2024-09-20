@@ -1,0 +1,30 @@
+units metal
+#mass 1 183.84
+#include ../potential.in
+
+# 设定变量
+variable n loop 369  # 假设有369个supercell文件
+label loop
+
+# 生成当前supercell文件名，使用sprintf格式化为三位数
+variable fname string supercell-$(shell sprintf "%03d" ${n})
+
+# 读取supercell文件
+read_data ${fname}
+mass 1 183.84
+include ../potential.in
+
+# 设置输出
+dump phonopy all custom 1 forces-${n}.dat id type x y z fx fy fz
+dump_modify phonopy format line "%d %d %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f"
+
+# 运行计算
+run 0
+
+# 清除当前的dump设置
+undump phonopy
+
+# 下一步
+next n
+jump in.lammps loop
+

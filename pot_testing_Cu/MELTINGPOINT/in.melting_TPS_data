@@ -1,0 +1,50 @@
+#-----generate data file for melting point simulation
+
+#-------General initialization-----------------------------
+log             melting_point_data.log     
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+atom_modify     map yes
+variable        latparam equal ${lat}
+
+#-------Define geometry  (2d X 2d) ---
+lattice         fcc ${latparam} orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+region          box block 0 16 0 8 0 8 units lattice
+create_box      1 box
+create_atoms    1 box
+
+#-------Define layer-------------------
+region        solid block INF 7.9 INF INF INF INF
+region        liquid block 8 INF INF INF INF INF
+group         liquid region liquid
+group         solid region solid
+
+#-------Define atom mass (no needed for molecular statics) 
+mass            1 63.546
+
+#-------Define interatomic potential--
+include         ../potential.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#------Relaxation -----------------------
+minimize        1e-30 10e-12 100000000 1000000000
+
+timestep        0.01
+min_style       fire
+minimize        0.0 1e-5 100000000 10000000000
+
+#-------Simulation---------------------------------
+fix solid_layer solid nvt temp 300 300 0.1
+fix liquid_layer liquid nvt temp 2000 2000 0.1
+
+thermo          100
+thermo_style    custom step temp pe lx ly lz pxx pyy pzz pxy pxz pyz press
+dump            dump_img all custom 100 melting_110.* id type x y z 
+
+run 4000
+
+#------Out put the data file-----------------------
+write_data melting_point.data

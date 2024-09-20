@@ -1,0 +1,46 @@
+#-----get the relaxed structure
+
+#----------general initiation--------------------------
+log             relax.log           
+label           loop_start
+#variable        latparam equal ${lat}
+variable        latparam equal 3.180756
+
+clear
+units           metal
+dimension       3
+boundary        p p p
+atom_style      atomic
+atom_modify     map yes
+
+#-------Define geometry  (2d X 2d) ---------------------
+lattice         bcc ${latparam} orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+region          box block 0 1 0 1 0 1 units lattice
+create_box      1 box
+create_atoms    1 box
+change_box 		all triclinic
+
+#-------Define interatomic potential--------------------
+include         ../potential.in
+neighbor        2.0 bin
+neigh_modify    every 1 delay 0 check yes
+
+#-------Define atom mass (no needed for moelcular statics) 
+mass            1 183.84
+
+#-------Compute------------------------------------------
+compute 	eng all pe/atom
+compute 	new all temp
+compute 	csym all centro/atom bcc
+compute 	poten all pe
+compute 	stress all stress/atom NULL
+
+#------Relaxation----------------------------------------
+thermo          100
+thermo_style    custom step pe lx ly lz pxx pyy pzz pxy pxz pyz press
+
+min_style       cg
+minimize        1e-30 10e-12 100000000 1000000000
+
+#-----Output the relaxed structure--------------------
+write_data relax_W.data

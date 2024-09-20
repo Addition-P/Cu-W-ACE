@@ -1,0 +1,16 @@
+#------------General initialization----------------------
+units metal
+
+#------------Read data-----------------------------------
+read_data supercell-001
+
+#------------Define interatomic potential----------------
+include ../potential.in
+
+#------------Define atom mass----------------------------
+mass 1 183.84
+
+#------------Simulation----------------------------------
+dump phonopy all custom 1 force id type x y z fx fy fz
+dump_modify phonopy format line "%d %d %15.8f %15.8f %15.8f %15.8f %15.8f %15.8f"
+run 0
